@@ -5,3 +5,7 @@ TestResults
 UAssetGUI/bin
 UAssetGUI/obj
 UAssetGUI/git_commit.txt
+ai-json
+__pycache__/
+*.pyc
+old/
