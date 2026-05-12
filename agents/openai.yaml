@@ -1,0 +1,4 @@
+interface:
+  display_name: "UE BP JSON Extractor"
+  short_description: "Extract AI-readable Unreal Blueprint JSON"
+  default_prompt: "Use $ue-bp-json-extractor to extract an AI-readable JSON summary from this Unreal Blueprint asset."

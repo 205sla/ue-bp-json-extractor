@@ -1,115 +1,147 @@
-# UAssetGUI
-[![Release](https://img.shields.io/github/v/release/atenfyr/UAssetGUI.svg?style=flat-square)](https://github.com/atenfyr/UAssetGUI/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/atenfyr/UAssetGUI/total.svg?style=flat-square)](https://github.com/atenfyr/UAssetGUI/releases)
-[![Issues](https://img.shields.io/github/issues/atenfyr/UAssetGUI.svg?style=flat-square)](https://github.com/atenfyr/UAssetGUI/issues)
-[![CI Status](https://img.shields.io/github/actions/workflow/status/atenfyr/UAssetGUI/build.yml?label=CI)](https://github.com/atenfyr/UAssetGUI/actions)
-[![License](https://img.shields.io/github/license/atenfyr/UAssetGUI.svg?style=flat-square)](https://github.com/atenfyr/UAssetGUI/blob/master/LICENSE.md)
+# UE Blueprint JSON Extractor
 
-UAssetGUI is a tool designed for low-level examination and modification of Unreal Engine game assets by hand.
+[한국어](README.ko.md)
 
-<img src="https://i.imgur.com/cibmlbW.png" align="center">
+Codex skill and helper scripts for extracting AI-readable JSON summaries from Unreal Engine Blueprint and map assets (`.uasset` / `.umap`).
 
-## Installation
-You can find pre-built binaries of UAssetGUI in the [Releases tab of this repository](https://github.com/atenfyr/UAssetGUI/releases).
+This project does not try to fully reconstruct Blueprint graphs. Instead, it uses UAssetGUI's existing `tojson` output as a stable source and builds a compact summary/index that is easier for AI tools to inspect.
 
-An experimental release of UAssetGUI is published with every new commit. If you have issues with the stable release of UAssetGUI, you may wish to try to use the experimental release. You can download the experimental release here: https://github.com/atenfyr/UAssetGUI/releases/tag/experimental-latest.
+## What It Extracts
 
-### Linux Setup
-If you would like to set up UAssetGUI for Linux (through Wine), perform the following steps:
+The AI summary JSON includes:
 
-1. If needed, download the latest UAssetGUI.exe binary through the Releases page of this repository.
-2. If needed, install the latest version of Wine. See this guide: https://gitlab.winehq.org/wine/wine/-/wikis/Download. These instructions were tested using Wine 11.0.
-3. Install the latest version of winetricks. See this guide: https://github.com/Winetricks/winetricks?tab=readme-ov-file#installing. If you are on Debian/Ubuntu, you should perform the steps under "Manual Install" on the winetricks GitHub page to make sure that winetricks is up-to-date.
-4. To install necessary pre-requisites, execute `winetricks dotnetdesktop8 micross` on the command line and go through all prompts that appear.
-5. Open UAssetGUI through Wine: `wine UAssetGUI.exe`
+- Asset path and engine version
+- Extraction status: `ok`, `failed`, or `partial`
+- Failure details when extraction fails
+- NameMap, import, export, and raw export counts
+- Class-like names
+- Object names
+- Package references
+- `/Script/...` references
+- `/Game/...` references
+- Gameplay-tag-like strings
+- K2 node candidates
+- Function candidates
+- Variable/property candidates
+- Raw export summaries with index, type, name, and byte size
 
-## Command line arguments
-You can run the program with command line arguments to perform various tasks, such as exporting and importing from UAssetAPI JSON without opening the GUI.
+Raw byte blobs are excluded by default. They are included only when explicitly requested.
 
-In the following cases, the engine version can either be specified as an EngineVersion enum entry (e.g. `VER_UE4_23` to refer to 4.23, `VER_UE5_0` to refer to 5.0, etc.) or as an integer (e.g. `23` to refer to 4.23, `29` to refer to 5.0, etc.). Specifying a set of mappings is optional, but if specified, must be the name of a file within the Mappings config directory (with no extension).
+## Why
 
-### Export to JSON
-```
-UAssetGUI tojson <source> <destination> <engine version> [mappings name]
-```
+Raw UAssetGUI JSON can be large and noisy. For AI-assisted reverse engineering, auditing, search, or documentation, it is often more useful to have a predictable summary with the most relevant names and references surfaced up front.
 
-Example 1: `UAssetGUI tojson A.uasset B.json VER_UE5_1`
+This tool is designed for read-only extraction. It never modifies the original `.uasset` or `.umap` file.
 
-Example 2: `UAssetGUI tojson A.uasset B.json 27 Astro`
+## Requirements
 
-### Import from JSON
-```
-UAssetGUI fromjson <source> <destination> [mappings name]
-```
+- Windows PowerShell
+- Python 3.10+
+- A working UAssetGUI executable
+- Unreal Engine version string for the asset, for example `VER_UE5_5`
 
-Example 1: `UAssetGUI fromjson B.json A.umap`
+UAssetGUI is an external dependency. You can use an existing local build or release binary.
 
-Example 2: `UAssetGUI fromjson B.json A.umap Outriders`
+## Repository Layout
 
-### Open a specific file in the GUI
-```
-UAssetGUI [file name] [engine version] [mappings name]
-```
-
-Example 1: `UAssetGUI` (to simply open the GUI without opening a file)
-
-Example 2: `UAssetGUI test.uasset`
-
-Example 3: `UAssetGUI test.uasset 23`
-
-Example 4: `UAssetGUI test.uasset VER_UE5_4 Bellwright`
-
-### Portable mode
-
-If desired, you may wish to use UAssetGUI in portable mode. In portable mode, all configuration files, saved mappings, etc. are stored in a "Data" folder adjacent to the executable file, allowing UAssetGUI to be used on a USB drive or other portable media. This feature is only available in v1.1.0 or higher.
-
-To set up portable mode, execute UAssetGUI with the following command line parameter. Once UAssetGUI has been launched in portable mode at least once, UAssetGUI can be executed normally (with no parameters) and it will remain in portable mode. To disable portable mode and return to normal operation, simply delete the "Data" folder adjacent to the UAssetGUI executable file.
-
-Usage: `UAssetGUI portable`
-
-## Compilation
-If you'd like to compile UAssetGUI for yourself, read on:
-
-### Prerequisites
-* Visual Studio 2022 or later
-* Git
-
-### Initial Setup
-1. Clone the UAssetGUI repository:
-
-```sh
-git clone https://github.com/atenfyr/UAssetGUI.git
+```text
+.
+├── SKILL.md
+├── agents/
+│   └── openai.yaml
+├── references/
+│   ├── ai-json-schema.md
+│   └── uassetgui-cli.md
+└── scripts/
+    ├── extract_bp_json.ps1
+    └── summarize_uasset_json.py
 ```
 
-2. Switch to the new UAssetGUI directory:
+## Quick Start
 
-```sh
-cd UAssetGUI
+Extract one asset:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
+  "C:\Project\Content\Blueprints\BP_Thing.uasset" `
+  "C:\tmp\bp-json\BP_Thing.ai.json" `
+  -EngineVersion VER_UE5_5 `
+  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe"
 ```
 
-3. Pull the required submodules:
+Extract a folder and write a manifest:
 
-```sh
-git submodule update --init
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
+  "C:\Project\Content\Blueprints" `
+  "C:\tmp\bp-json" `
+  -EngineVersion VER_UE5_5 `
+  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
+  -ManifestPath "C:\tmp\bp-json\manifest.json"
 ```
 
-4. Open the `UAssetGUI.sln` solution file in Visual Studio, right-click on the UAssetGUI project in the Solution Explorer, and click "Set as Startup Project."
+Normalize an existing UAssetGUI JSON export:
 
-5. Right-click on the solution name in the Solution Explorer, and press "Restore Nuget Packages."
+```bash
+python scripts/summarize_uasset_json.py \
+  --input raw.uassetgui.json \
+  --output asset.ai.json \
+  --asset-path BP_Thing.uasset \
+  --engine-version VER_UE5_5
+```
 
-6. Press the "Start" button or press F5 to compile and open UAssetGUI.
+## Failure Handling
 
-## Contributing
-Any contributions, whether through pull requests or issues, that you may make are greatly appreciated.
+Some assets fail to parse because of engine-version mismatch, mapping issues, unsupported serialization, locked files, or UAssetAPI exceptions.
 
-If you have an Unreal Engine .uasset file that displays "failed to maintain binary equality," feel free to submit an issue on [the UAssetAPI issues page](https://github.com/atenfyr/UAssetAPI/issues) with a copy of the asset in question along with the name of the game, the Unreal Engine version that it was cooked with, and a mappings file for the game, if needed.
+The wrapper keeps batch extraction alive. For failed assets it writes a JSON file like:
 
-Please note: Your issue will NOT be reviewed if no test asset(s) are provided (unless the issue is completely unrelated to asset parsing).
+```json
+{
+  "schema_version": "ue-bp-ai-json-v1",
+  "asset_path": "C:/Project/Content/BP_Broken.uasset",
+  "engine_version": "VER_UE5_5",
+  "status": "failed",
+  "error": {
+    "type": "UAssetGUI.ToJsonFailed",
+    "message": "UAssetGUI tojson did not produce a readable JSON file.",
+    "stack": "..."
+  }
+}
+```
 
-We currently do not accept AI-generated code on the UAssetAPI or UAssetGUI repositories. UAssetGUI is mature, stable software, so all changes must be thoroughly tested and reviewed by a human. Pull requests containing AI-generated code, text, documentation, or other AI-generated assets will not be reviewed.
+## Config Isolation
 
-## Source
-Source code for UAssetGUI is available on GitHub: https://github.com/atenfyr/UAssetGUI
+UAssetGUI may read or write configuration and mappings under user profile folders. The PowerShell wrapper avoids common permission and profile-collision problems by:
 
-## License
-UAssetAPI and UAssetGUI are distributed under the MIT license, which you can view in detail in the [LICENSE file](LICENSE).
+- Trying portable mode when possible
+- Isolating `LOCALAPPDATA` and `APPDATA` under the output directory
+- Using `.NET ProcessStartInfo` instead of PowerShell `Start-Process` for predictable argument and environment handling
+
+## Codex Skill Usage
+
+This repository is structured as a Codex skill. Put the folder where Codex can load local skills, or invoke it explicitly by path.
+
+The skill teaches Codex to:
+
+- Run UAssetGUI safely in read-only extraction mode
+- Normalize raw UAssetGUI JSON
+- Prefer compact AI summaries over huge raw JSON blobs
+- Inspect manifest files first during batch extraction
+- Avoid committing private game assets or generated extraction output
+
+## Output Schema
+
+See [references/ai-json-schema.md](references/ai-json-schema.md) for the field contract.
+
+## Limitations
+
+- This is not a complete Blueprint graph decompiler.
+- Candidate fields are heuristic indexes, not guaranteed semantic facts.
+- Results depend on UAssetGUI/UAssetAPI support for the asset and engine version.
+- Proprietary assets and mappings should not be committed to public repositories.
+
+## Related Projects
+
+- [UAssetGUI](https://github.com/atenfyr/UAssetGUI)
+- [UAssetAPI](https://github.com/atenfyr/UAssetAPI)
