@@ -26,6 +26,7 @@ def empty_summary(asset_path: str, engine_version: str, status: str, error: dict
         "engine_version": engine_version,
         "status": status,
         "error": error,
+        "string_inventory_json": None,
         "name_map_count": 0,
         "imports_count": 0,
         "exports_count": 0,
@@ -43,12 +44,17 @@ def empty_summary(asset_path: str, engine_version: str, status: str, error: dict
     }
 
 
-def error_object(error_type: str | None, message: str | None, stack: str | None) -> dict[str, Any] | None:
-    if not error_type and not message and not stack:
+def error_object(
+    error_type: str | None,
+    message: str | None,
+    stack: str | None,
+    category: str | None = None,
+) -> dict[str, Any] | None:
+    if not category and not error_type and not message and not stack:
         return None
     if stack and len(stack) > MAX_STACK_LENGTH:
         stack = stack[:MAX_STACK_LENGTH]
-    return {"type": error_type, "message": message, "stack": stack}
+    return {"category": category, "type": error_type, "message": message, "stack": stack}
 
 
 def collect_strings(value: Any, out: set[str]) -> None:
@@ -114,6 +120,8 @@ _TAG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$")
 
 def looks_like_gameplay_tag(value: str) -> bool:
     if not value or len(value) > 128 or value.startswith("/") or "/" in value or " " in value:
+        return False
+    if value.startswith(("UAssetAPI.", "System.", "Newtonsoft.")):
         return False
     return bool(_TAG_RE.match(value))
 
@@ -307,6 +315,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--include-raw", action="store_true", help="Include raw export blobs when present.")
     parser.add_argument("--failed", action="store_true", help="Write a failed summary without reading an input JSON.")
     parser.add_argument("--error-type", help="Failure exception type.")
+    parser.add_argument("--error-category", help="Failure category for generated failed summaries.")
     parser.add_argument("--error-message", help="Failure message.")
     parser.add_argument("--error-stack", help="Failure stack or captured process output.")
     return parser.parse_args(argv)
@@ -323,7 +332,7 @@ def main(argv: list[str]) -> int:
                 args.asset_path,
                 args.engine_version,
                 "failed",
-                error_object(args.error_type, args.error_message, args.error_stack),
+                error_object(args.error_type, args.error_message, args.error_stack, args.error_category),
             ),
         )
         return 0
@@ -335,13 +344,13 @@ def main(argv: list[str]) -> int:
                 args.asset_path,
                 args.engine_version,
                 "failed",
-                error_object("ArgumentError", "No input JSON path was provided.", None),
+                error_object("ArgumentError", "No input JSON path was provided.", None, "SummarizerFailed"),
             ),
         )
         return 2
 
     try:
-        with open(input_path, "r", encoding="utf-8") as handle:
+        with open(input_path, "r", encoding="utf-8-sig") as handle:
             root = json.load(handle)
         if not isinstance(root, dict):
             raise TypeError("Expected the UAssetGUI JSON root to be an object.")
@@ -354,7 +363,7 @@ def main(argv: list[str]) -> int:
                 args.asset_path,
                 args.engine_version,
                 "failed",
-                error_object(type(exc).__name__, str(exc), traceback.format_exc()),
+                error_object(type(exc).__name__, str(exc), traceback.format_exc(), "SummarizerFailed"),
             ),
         )
         return 1
