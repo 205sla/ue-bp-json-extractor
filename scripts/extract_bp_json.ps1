@@ -41,6 +41,40 @@ function Resolve-Executable {
     return $command.Source
 }
 
+function Resolve-UAssetGUIExecutable {
+    param([string]$Path)
+
+    $skillRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
+    $candidates = New-Object System.Collections.Generic.List[string]
+
+    if (-not [string]::IsNullOrWhiteSpace($Path)) {
+        $candidates.Add($Path)
+    }
+    if ($env:UASSETGUI_PATH) {
+        $candidates.Add($env:UASSETGUI_PATH)
+    }
+    $candidates.Add((Join-Path $skillRoot "tools\uassetgui-bin\UAssetGUI.exe"))
+    $candidates.Add((Join-Path $skillRoot "tools\UAssetGUI\UAssetGUI.exe"))
+    $candidates.Add((Join-Path $skillRoot "tools\UAssetGUI-src\UAssetGUI\bin\Release\net8.0-windows\UAssetGUI.exe"))
+
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) {
+            continue
+        }
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    try {
+        $command = Get-Command $Path -ErrorAction Stop
+        return $command.Source
+    }
+    catch {
+        throw "UAssetGUI executable was not found. Pass -UAssetGUIPath, set UASSETGUI_PATH, place UAssetGUI.exe under '$skillRoot\tools\uassetgui-bin', or run scripts\setup_uassetgui.ps1 to prepare a workspace-local copy."
+    }
+}
+
 function Get-AssetFiles {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -379,7 +413,7 @@ function Invoke-Summarizer {
     return Invoke-ProcessCaptured -FileName $PythonPath -Arguments $arguments
 }
 
-$resolvedUAssetGUI = Resolve-Executable $UAssetGUIPath
+$resolvedUAssetGUI = Resolve-UAssetGUIExecutable $UAssetGUIPath
 $resolvedPython = Resolve-Executable $Python
 $assets = Get-AssetFiles $InputPath
 if ($assets.Count -eq 0) {

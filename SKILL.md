@@ -11,16 +11,17 @@ Use this skill to convert Unreal Engine `.uasset` or `.umap` files into compact 
 
 1. Confirm the asset path and Unreal engine version, for example `VER_UE5_5`.
 2. Create an output root under the current workspace, such as `bp_asset_analysis_<date>_<topic>`. Avoid `C:\tmp` in sandboxed Codex runs because it may be listed as writable but still fail at directory creation time.
-3. Prefer `scripts/extract_bp_json.ps1` for local extraction. It runs UAssetGUI `tojson`, isolates config folders when possible, applies optional per-asset timeout, writes a failure JSON when an asset cannot be parsed, and calls the Python summarizer.
-4. Always pass `OutputPath` or `-OutputRoot`, `-ManifestPath`, and `-AppDataRoot` under the same output root for reproducible runs.
-5. Use `-NoPortable` for installed UAssetGUI binaries unless the executable directory is known to be writable. Use `-Portable` only when writing a `Data` folder beside the executable is acceptable.
-6. If a sandbox write failure blocks the run, retry the same command with escalated permissions instead of changing the source assets.
-7. Keep failed summary JSON files; they are analysis artifacts and should record the failure category/message.
-8. If child stderr reports AppData or UAssetGUI mappings `UnauthorizedAccessException`, treat `AppDataPermissionDenied` as a sandbox issue and retry the same command with escalation.
-9. When UAssetGUI fails, inspect the `string_inventory_json` fallback if present. It is a lossy ASCII identifier inventory from the binary asset, useful for names/references when full parsing fails. Disable it only for very large batches with `-NoStringFallback`.
-10. Use `scripts/summarize_uasset_json.py` directly when raw UAssetGUI JSON already exists.
-11. For batch folders, inspect the generated `manifest.json` or `manifest.jsonl` first, then open only the summary JSON files needed for the task. The wrapper updates the manifest after each asset, so interrupted batches can still leave partial progress.
-12. Include raw export blobs only when explicitly needed by passing `-IncludeRaw`; otherwise keep raw bytes out of the AI summary.
+3. Ensure UAssetGUI is available. Prefer a workspace-local copy under `tools/uassetgui-bin/UAssetGUI.exe`; run `scripts/setup_uassetgui.ps1 -DownloadRelease` to download an upstream release binary into the ignored `tools/` folder. Use source build only when release binaries are unsuitable. `extract_bp_json.ps1` also accepts `-UAssetGUIPath` or `UASSETGUI_PATH`.
+4. Prefer `scripts/extract_bp_json.ps1` for local extraction. It runs UAssetGUI `tojson`, isolates config folders when possible, applies optional per-asset timeout, writes a failure JSON when an asset cannot be parsed, and calls the Python summarizer.
+5. Always pass `OutputPath` or `-OutputRoot`, `-ManifestPath`, and `-AppDataRoot` under the same output root for reproducible runs.
+6. Use `-NoPortable` for installed UAssetGUI binaries unless the executable directory is known to be writable. Use `-Portable` only when writing a `Data` folder beside the executable is acceptable.
+7. If a sandbox write failure blocks the run, retry the same command with escalated permissions instead of changing the source assets.
+8. Keep failed summary JSON files; they are analysis artifacts and should record the failure category/message.
+9. If child stderr reports AppData or UAssetGUI mappings `UnauthorizedAccessException`, treat `AppDataPermissionDenied` as a sandbox issue and retry the same command with escalation.
+10. When UAssetGUI fails, inspect the `string_inventory_json` fallback if present. It is a lossy ASCII identifier inventory from the binary asset, useful for names/references when full parsing fails. Disable it only for very large batches with `-NoStringFallback`.
+11. Use `scripts/summarize_uasset_json.py` directly when raw UAssetGUI JSON already exists.
+12. For batch folders, inspect the generated `manifest.json` or `manifest.jsonl` first, then open only the summary JSON files needed for the task. The wrapper updates the manifest after each asset, so interrupted batches can still leave partial progress.
+13. Include raw export blobs only when explicitly needed by passing `-IncludeRaw`; otherwise keep raw bytes out of the AI summary.
 
 ## Commands
 
@@ -32,7 +33,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints\BP_Thing.uasset" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `
@@ -47,13 +47,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `
   -KeepRawJson `
   -TimeoutSeconds 120
 ```
+
+Prepare a workspace-local UAssetGUI build:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1 -DownloadRelease
+```
+
+Use `-ReleaseTag v1.1.0` or another upstream tag when a specific UAssetGUI release is required.
 
 Normalize an existing raw JSON export:
 

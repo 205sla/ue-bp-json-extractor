@@ -30,7 +30,7 @@ Raw byte blobs are excluded by default. They are included only when explicitly r
 - A working UAssetGUI executable
 - Unreal Engine version string for the asset, for example `VER_UE5_5`
 
-UAssetGUI is an external dependency. You can use an existing local build or release binary.
+UAssetGUI is an external dependency, but this repository can prepare a workspace-local copy under the ignored `tools/` folder. You can also use an existing local build or release binary by passing `-UAssetGUIPath` or setting `UASSETGUI_PATH`.
 
 ## Repository Layout
 
@@ -45,8 +45,33 @@ UAssetGUI is an external dependency. You can use an existing local build or rele
 `-- scripts/
     |-- extract_bp_json.ps1
     |-- scan_uasset_strings.py
+    |-- setup_uassetgui.ps1
     `-- summarize_uasset_json.py
 ```
+
+## Prepare UAssetGUI
+
+To avoid depending on a hard-coded machine path such as `C:\Users\young\Tools\UAssetGUI`, prepare a local copy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1 -DownloadRelease
+```
+
+The setup script downloads a pinned upstream release, extracts `UAssetGUI.exe` and companion files into `tools/uassetgui-bin`, writes `VERSION.txt` and `SHA256SUMS.txt`, and attempts to include upstream `LICENSE`/`NOTICE.md`. The `tools/` folder is git-ignored. The extractor automatically looks there before falling back to `UASSETGUI_PATH` or a `UAssetGUI.exe` on `PATH`.
+
+The default pinned release is `v1.1.0`. Override it with `-ReleaseTag` if you need a different upstream release:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1 -DownloadRelease -ReleaseTag v1.1.0
+```
+
+To build from source instead of downloading a release, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1
+```
+
+The source build path clones [atenfyr/UAssetGUI](https://github.com/atenfyr/UAssetGUI), initializes submodules, and publishes `UAssetGUI.exe` into `tools/uassetgui-bin`. It requires `git` and a .NET SDK capable of building `net8.0-windows`.
 
 ## Quick Start
 
@@ -58,7 +83,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints\BP_Thing.uasset" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `
@@ -73,7 +97,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `

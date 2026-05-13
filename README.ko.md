@@ -30,7 +30,7 @@ raw byte blob은 기본적으로 제외합니다. 명시적으로 필요할 때�
 - 실행 가능한 UAssetGUI 바이너리
 - 에셋에 맞는 Unreal Engine 버전 문자열, 예: `VER_UE5_5`
 
-UAssetGUI는 외부 의존성입니다. 기존 로컬 빌드나 release 바이너리를 사용할 수 있습니다.
+UAssetGUI는 외부 의존성이지만, 이 저장소는 git-ignored `tools/` 폴더 아래에 workspace-local copy를 준비할 수 있습니다. 기존 로컬 빌드나 release 바이너리를 쓰려면 `-UAssetGUIPath`를 넘기거나 `UASSETGUI_PATH`를 설정하면 됩니다.
 
 ## 저장소 구조
 
@@ -45,8 +45,33 @@ UAssetGUI는 외부 의존성입니다. 기존 로컬 빌드나 release 바이�
 `-- scripts/
     |-- extract_bp_json.ps1
     |-- scan_uasset_strings.py
+    |-- setup_uassetgui.ps1
     `-- summarize_uasset_json.py
 ```
+
+## UAssetGUI 준비
+
+`C:\Users\young\Tools\UAssetGUI` 같은 특정 PC 경로에 의존하지 않으려면 workspace-local copy를 준비합니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1 -DownloadRelease
+```
+
+setup script는 고정된 upstream release를 다운로드하고, `UAssetGUI.exe`와 동반 파일을 `tools/uassetgui-bin`에 압축 해제한 뒤 `VERSION.txt`, `SHA256SUMS.txt`를 남기고 upstream `LICENSE`/`NOTICE.md` 포함을 시도합니다. `tools/` 폴더는 git-ignored입니다. extractor는 이 위치를 먼저 자동 탐색하고, 그다음 `UASSETGUI_PATH` 또는 `PATH`의 `UAssetGUI.exe`를 사용합니다.
+
+기본 고정 release는 `v1.1.0`입니다. 다른 upstream release가 필요하면 `-ReleaseTag`로 바꿀 수 있습니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1 -DownloadRelease -ReleaseTag v1.1.0
+```
+
+release 다운로드 대신 source build를 하고 싶다면 다음 명령을 사용합니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_uassetgui.ps1
+```
+
+source build 경로는 [atenfyr/UAssetGUI](https://github.com/atenfyr/UAssetGUI)를 clone하고 submodule을 초기화한 뒤 `tools/uassetgui-bin`에 `UAssetGUI.exe`를 publish합니다. 이 경로에는 `git`과 `net8.0-windows`를 빌드할 수 있는 .NET SDK가 필요합니다.
 
 ## 빠른 시작
 
@@ -58,7 +83,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints\BP_Thing.uasset" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `
@@ -73,7 +97,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract_bp_json.ps1 `
   "C:\Project\Content\Blueprints" `
   $out `
   -EngineVersion VER_UE5_5 `
-  -UAssetGUIPath "C:\Tools\UAssetGUI\UAssetGUI.exe" `
   -ManifestPath (Join-Path $out "manifest.json") `
   -AppDataRoot (Join-Path $out ".uassetgui-appdata") `
   -NoPortable `
