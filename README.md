@@ -44,6 +44,7 @@ UAssetGUI is an external dependency, but this repository can prepare a workspace
 |   `-- uassetgui-cli.md
 `-- scripts/
     |-- extract_bp_json.ps1
+    |-- package_skill.ps1
     |-- scan_uasset_strings.py
     |-- setup_uassetgui.ps1
     `-- summarize_uasset_json.py
@@ -169,6 +170,32 @@ The skill teaches Codex to:
 - Inspect manifest files first during batch extraction
 - Use fallback string inventories when full parsing fails
 - Avoid committing private game assets or generated extraction output
+
+## Claude Code Skill Usage
+
+Claude Code can use the same skill folder because it also discovers skills from directories containing `SKILL.md`.
+
+Personal install:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills" | Out-Null
+Copy-Item -Recurse -Force . "$env:USERPROFILE\.claude\skills\ue-bp-json-extractor"
+```
+
+Project install:
+
+```powershell
+New-Item -ItemType Directory -Force -Path ".claude\skills" | Out-Null
+Copy-Item -Recurse -Force . ".claude\skills\ue-bp-json-extractor"
+```
+
+For a clean Claude Code package that excludes Codex-only metadata, docs, `tools/`, notes, and generated output:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target claude-code -Zip -Force
+```
+
+Install the generated `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` folder into `~/.claude/skills/` or `.claude/skills/`. Claude Code on Windows can run the PowerShell wrapper directly. Claude Code on WSL, Linux, or macOS can still use the Python summarizer/string scanner, but cannot run `UAssetGUI.exe` without a Windows bridge.
 
 ## Output Schema
 

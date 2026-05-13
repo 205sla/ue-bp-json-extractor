@@ -1,11 +1,13 @@
 ---
 name: ue-bp-json-extractor
-description: Extract AI-readable JSON summaries from Unreal Engine assets (.uasset/.umap) using UAssetGUI/UAssetAPI, especially Blueprints, maps, widgets, behavior trees, data tables, materials, meshes, and textures. Use when Codex needs to inspect Unreal assets, batch-export asset indexes, normalize UAssetGUI tojson output, identify NameMap/import/export references, or produce failure-tolerant JSON/string inventories for AI analysis without modifying source assets.
+description: Extract AI-readable JSON summaries from Unreal Engine assets (.uasset/.umap) using UAssetGUI/UAssetAPI, especially Blueprints, maps, widgets, behavior trees, data tables, materials, meshes, and textures. Use when an AI agent needs to inspect Unreal assets, batch-export asset indexes, normalize UAssetGUI tojson output, identify NameMap/import/export references, or produce failure-tolerant JSON/string inventories for AI analysis without modifying source assets.
 ---
 
 # UE Asset JSON Extraction
 
 Use this skill to convert Unreal Engine `.uasset` or `.umap` files into compact JSON that is easier for an AI agent to scan than raw UAssetGUI JSON. It is strongest for Blueprint-like assets but can also index maps, widgets, behavior trees, data tables, materials, meshes, and textures when UAssetGUI supports the package. Treat extraction as read-only; never write back to the source asset.
+
+This skill expects a Windows PowerShell environment for UAssetGUI execution because upstream UAssetGUI is distributed as `UAssetGUI.exe`. In Claude Code on WSL, Linux, or macOS, use the Python summarizer/string scanner only, or run the PowerShell wrapper from a Windows environment that can execute the UAssetGUI binary.
 
 ## Workflow
 
