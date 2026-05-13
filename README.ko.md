@@ -44,6 +44,7 @@ UAssetGUI는 외부 의존성이지만, 이 저장소는 git-ignored `tools/` �
 |   `-- uassetgui-cli.md
 `-- scripts/
     |-- extract_bp_json.ps1
+    |-- package_skill.ps1
     |-- scan_uasset_strings.py
     |-- setup_uassetgui.ps1
     `-- summarize_uasset_json.py
@@ -169,6 +170,32 @@ UAssetGUI는 사용자 profile 폴더 아래의 설정과 mapping 파일을 읽�
 - 배치 분석 시 manifest를 먼저 확인
 - 전체 파싱 실패 시 fallback string inventory 확인
 - private game asset이나 생성된 분석 결과를 public repository에 커밋하지 않기
+
+## Claude Code Skill 사용
+
+Claude Code도 `SKILL.md`가 있는 폴더를 skill로 인식하므로 같은 skill 폴더를 사용할 수 있습니다.
+
+개인 skill 설치:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills" | Out-Null
+Copy-Item -Recurse -Force . "$env:USERPROFILE\.claude\skills\ue-bp-json-extractor"
+```
+
+프로젝트 skill 설치:
+
+```powershell
+New-Item -ItemType Directory -Force -Path ".claude\skills" | Out-Null
+Copy-Item -Recurse -Force . ".claude\skills\ue-bp-json-extractor"
+```
+
+Codex 전용 metadata, GitHub 문서, `tools/`, notes, 생성된 분석 결과를 제외한 깨끗한 Claude Code용 패키지를 만들려면 다음 명령을 사용합니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target claude-code -Zip -Force
+```
+
+생성된 `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` 폴더를 `~/.claude/skills/` 또는 `.claude/skills/` 아래에 설치하면 됩니다. Windows에서 실행되는 Claude Code는 PowerShell wrapper를 직접 사용할 수 있습니다. WSL, Linux, macOS의 Claude Code에서는 Python summarizer/string scanner는 사용할 수 있지만, `UAssetGUI.exe` 실행에는 Windows bridge가 필요합니다.
 
 ## 출력 Schema
 
