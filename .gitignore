@@ -6,6 +6,8 @@ UAssetGUI/bin
 UAssetGUI/obj
 UAssetGUI/git_commit.txt
 ai-json
+bp_asset_analysis_*/
 __pycache__/
 *.pyc
 old/
+notes/
