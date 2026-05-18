@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Unreal Engine 에셋(`.uasset` / `.umap`)에서 AI가 읽기 쉬운 JSON 요약을 추출하는 Codex skill과 보조 스크립트입니다. Blueprint뿐 아니라 UAssetGUI가 파싱할 수 있는 map, widget, behavior tree, data table, material, mesh, texture 같은 Unreal 전용 에셋 분석에도 사용할 수 있습니다.
+Unreal Engine 에셋(`.uasset` / `.umap`)에서 AI가 읽기 쉬운 JSON 요약을 추출하는 AI 에이전트 skill과 보조 스크립트입니다. Blueprint뿐 아니라 UAssetGUI가 파싱할 수 있는 map, widget, behavior tree, data table, material, mesh, texture 같은 Unreal 전용 에셋 분석에도 사용할 수 있습니다. **Codex**와 **Claude Code** 양쪽에서 모두 로컬 skill로 동작하며(`SKILL.md` 형식이 둘 사이에 공유됩니다), 보조 스크립트는 에이전트 없이도 직접 호출할 수 있습니다.
 
 이 프로젝트는 Blueprint graph를 완전히 복원한다고 주장하지 않습니다. UAssetGUI의 기존 `tojson` 결과를 안정적인 원천으로 사용하고, 그 위에서 AI가 훑어보기 좋은 요약/색인 JSON을 만듭니다. 추출은 read-only이며 원본 에셋 파일을 수정하지 않습니다.
 
@@ -158,11 +158,11 @@ UAssetGUI는 사용자 profile 폴더 아래의 설정과 mapping 파일을 읽�
 
 일부 UAssetGUI 빌드는 환경변수를 덮어써도 실제 사용자 AppData를 내부적으로 참조할 수 있습니다. Codex/sandbox 실행에서는 `OutputPath`, `ManifestPath`, `AppDataRoot`를 현재 workspace 아래에 두세요. child process가 `AppDataPermissionDenied`를 보고하면 source asset을 바꾸지 말고 같은 명령을 escalated 권한으로 재시도합니다.
 
-## Codex Skill 사용
+## Skill 사용
 
-이 저장소는 Codex skill 구조입니다. Codex가 로컬 skill로 읽을 수 있는 위치에 두거나, 경로를 명시해 사용할 수 있습니다.
+이 저장소는 **Codex**와 **Claude Code** 양쪽이 로컬 skill로 인식하는 `SKILL.md`를 제공합니다. 에이전트가 skill을 자동으로 찾는 위치에 폴더를 두거나, 경로를 명시해 사용할 수 있습니다.
 
-이 skill은 Codex에게 다음 절차를 알려줍니다.
+skill은 AI 에이전트에게 다음 절차를 알려줍니다.
 
 - UAssetGUI를 read-only 추출 모드로 안전하게 실행
 - UAssetGUI raw JSON 정규화
@@ -171,31 +171,51 @@ UAssetGUI는 사용자 profile 폴더 아래의 설정과 mapping 파일을 읽�
 - 전체 파싱 실패 시 fallback string inventory 확인
 - private game asset이나 생성된 분석 결과를 public repository에 커밋하지 않기
 
-## Claude Code Skill 사용
+### Claude Code
 
-Claude Code도 `SKILL.md`가 있는 폴더를 skill로 인식하므로 같은 skill 폴더를 사용할 수 있습니다.
+Claude Code는 `~/.claude/skills/`(개인) 또는 `.claude/skills/`(프로젝트) 아래에 `SKILL.md`가 있는 폴더를 자동으로 skill로 인식합니다.
 
-개인 skill 설치:
+개인 skill 설치 (Windows PowerShell):
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills" | Out-Null
 Copy-Item -Recurse -Force . "$env:USERPROFILE\.claude\skills\ue-bp-json-extractor"
 ```
 
-프로젝트 skill 설치:
+프로젝트 skill 설치 (Windows PowerShell):
 
 ```powershell
 New-Item -ItemType Directory -Force -Path ".claude\skills" | Out-Null
 Copy-Item -Recurse -Force . ".claude\skills\ue-bp-json-extractor"
 ```
 
-Codex 전용 metadata, GitHub 문서, `tools/`, notes, 생성된 분석 결과를 제외한 깨끗한 Claude Code용 패키지를 만들려면 다음 명령을 사용합니다.
+개인 skill 설치 (macOS / Linux / WSL):
+
+```bash
+mkdir -p "$HOME/.claude/skills"
+cp -R . "$HOME/.claude/skills/ue-bp-json-extractor"
+```
+
+Codex 전용 metadata, repo 문서, `tools/`, notes, 생성된 분석 결과를 제외한 깨끗한 Claude Code용 패키지를 만들려면 다음 명령을 사용합니다.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target claude-code -Zip -Force
 ```
 
-생성된 `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` 폴더를 `~/.claude/skills/` 또는 `.claude/skills/` 아래에 설치하면 됩니다. Windows에서 실행되는 Claude Code는 PowerShell wrapper를 직접 사용할 수 있습니다. WSL, Linux, macOS의 Claude Code에서는 Python summarizer/string scanner는 사용할 수 있지만, `UAssetGUI.exe` 실행에는 Windows bridge가 필요합니다.
+생성된 `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` 폴더를 `~/.claude/skills/` 또는 `.claude/skills/` 아래에 설치하면 됩니다.
+
+Claude Code 플랫폼별 주의 사항:
+
+- **Windows용 Claude Code**는 PowerShell wrapper를 그대로 실행할 수 있어 UAssetGUI 전체 추출 경로를 그대로 사용합니다.
+- **macOS / Linux / WSL의 Claude Code**는 Python summarizer/string scanner(크로스 플랫폼)는 사용할 수 있지만, `UAssetGUI.exe` 실행에는 Windows bridge가 필요합니다. Windows 머신에서 PowerShell wrapper를 실행해 raw JSON 혹은 출력 폴더를 macOS/Linux/WSL 세션으로 공유한 뒤 `summarize_uasset_json.py`로 정규화하세요.
+
+### Codex
+
+Codex가 로컬 skill을 읽는 위치에 폴더를 두거나 경로를 명시해 사용합니다. `agents/openai.yaml`에 Codex의 display name과 default prompt가 들어 있으며, packager의 `-Target codex` 모드는 이 파일을 함께 포함합니다.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target codex -Zip -Force
+```
 
 ## 출력 Schema
 
