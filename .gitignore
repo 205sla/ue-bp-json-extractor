@@ -13,3 +13,4 @@ old/
 notes/
 tools/
 dist/
+.claude/worktrees/
