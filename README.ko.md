@@ -19,6 +19,7 @@ AI 요약 JSON에는 다음 정보가 포함됩니다.
 - package reference, `/Script/...`, `/Game/...` reference
 - gameplay tag처럼 보이는 문자열
 - K2 node, function, variable/property 후보
+- UAssetGUI가 K2 node export를 제공할 때 compact graph node class count
 - raw export의 index, type, name, byte size 요약
 
 raw byte blob은 기본적으로 제외합니다. 명시적으로 필요할 때만 `-IncludeRaw`를 사용합니다.
@@ -31,6 +32,8 @@ raw byte blob은 기본적으로 제외합니다. 명시적으로 필요할 때�
 - 에셋에 맞는 Unreal Engine 버전 문자열, 예: `VER_UE5_5`
 
 UAssetGUI는 외부 의존성이지만, 이 저장소는 git-ignored `tools/` 폴더 아래에 workspace-local copy를 준비할 수 있습니다. 기존 로컬 빌드나 release 바이너리를 쓰려면 `-UAssetGUIPath`를 넘기거나 `UASSETGUI_PATH`를 설정하면 됩니다.
+
+`.uproject`의 `EngineAssociation` 값이 `5.4` 또는 `5.5`라면 UAssetGUI engine version은 각각 `VER_UE5_4`, `VER_UE5_5`를 사용합니다.
 
 ## 저장소 구조
 
@@ -143,9 +146,11 @@ python scripts/scan_uasset_strings.py BP_Thing.uasset --output BP_Thing.strings.
 }
 ```
 
-주요 실패 category는 `OutputPermissionDenied`, `AppDataPermissionDenied`, `UAssetGUITimeout`, `GuidParseFailed`, `IndexOutOfRangeParseFailed`, `NegativeCountParseFailed`, `UAssetGUIParseFailed`, `SummarizerFailed`, `MalformedSummaryJson`입니다.
+주요 실패 category는 `OutputPermissionDenied`, `AppDataPermissionDenied`, `UAssetGUITimeout`, `GuidParseFailed`, `IndexOutOfRangeParseFailed`, `NegativeCountParseFailed`, `NoRawJsonProduced`, `UAssetGUIParseFailed`, `SummarizerFailed`, `MalformedSummaryJson`입니다.
 
-`-NoStringFallback`을 지정하지 않으면 실패 에셋마다 `*.strings.json` fallback inventory를 생성합니다. 이 파일은 원본 바이너리 에셋에서 ASCII 식별자를 거칠게 스캔한 결과입니다. UAssetGUI가 패키지를 파싱하지 못할 때 이름과 reference를 찾는 데 도움이 되지만, graph topology는 아닙니다.
+`NoRawJsonProduced`는 UAssetGUI가 성공 exit code를 반환했지만 비어 있지 않은 raw JSON 파일을 남기지 않은 경우입니다. sandboxed Windows 실행에서는 같은 명령을 escalated 권한으로 재시도하세요. 사용자가 명시적으로 허용하지 않는 한 Windows clipboard의 숨은 exception text는 읽지 않습니다.
+
+`-NoStringFallback`을 지정하지 않으면 실패 에셋마다 `*.strings.json` fallback inventory를 생성합니다. 이 파일은 원본 바이너리 에셋에서 ASCII 식별자를 거칠게 스캔한 결과입니다. UAssetGUI가 패키지를 파싱하지 못할 때 이름, function 후보, node class 문자열, reference를 찾는 데 도움이 되지만, graph topology는 아닙니다.
 
 ## 설정 격리
 

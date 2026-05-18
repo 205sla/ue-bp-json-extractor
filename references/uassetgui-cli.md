@@ -43,8 +43,22 @@ For sandboxed Codex runs, keep the output root, manifest, raw JSON directory, an
 
 Some UAssetGUI builds resolve the real user AppData folder internally even when `LOCALAPPDATA` and `APPDATA` are overridden for the child process. If child stderr contains an AppData or mappings `UnauthorizedAccessException`, the wrapper classifies it as `AppDataPermissionDenied`; retry the same command with escalation.
 
+If UAssetGUI exits with code 0 but the raw JSON file is missing or empty, the wrapper classifies the result as `NoRawJsonProduced`. Treat this as a likely silent UAssetGUI/WinForms failure in sandboxed Windows runs and retry the same command with escalation. Do not inspect the Windows clipboard for hidden exception text unless the user explicitly authorizes it.
+
 It uses `.NET ProcessStartInfo` rather than PowerShell `Start-Process` so arguments and environment variables are passed predictably.
 
 When parsing fails, the wrapper classifies common UAssetAPI failure shapes such as GUID byte-length errors, index/range errors, negative count errors, and timeout. Unless `-NoStringFallback` is supplied, it also runs `scripts/scan_uasset_strings.py` against the original asset and records the resulting `string_inventory_json` path in both the failed summary and manifest entry.
+
+Engine version mapping:
+
+- For a `.uproject` with `"EngineAssociation": "5.4"`, use `VER_UE5_4`.
+- For `"EngineAssociation": "5.5"`, use `VER_UE5_5`.
+- For custom engine associations, ask the user which Unreal minor version the project is built with.
+
+Smoke-test asset profile:
+
+- Prefer a small or medium Blueprint-like asset that still has meaningful graph data, such as a behavior-tree task derived from `BTTask_BlueprintBase`.
+- Good smoke-test indicators include `ReceiveExecuteAI`, `ExecuteUbergraph_*`, `K2Node_CallFunction`, `K2Node_VariableGet`, `K2Node_DynamicCast`, blackboard calls, `FinishExecute`, and a few `/Game/...` references.
+- Avoid making private project assets part of the public repository; document the profile, not the asset file.
 
 Mappings names are passed through to UAssetGUI. Keep private game assets and proprietary mappings out of public commits.

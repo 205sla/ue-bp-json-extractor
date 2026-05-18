@@ -23,6 +23,7 @@ Required top-level fields:
   "game_refs": [],
   "gameplay_tags": [],
   "k2_node_candidates": [],
+  "node_class_counts": [],
   "function_candidates": [],
   "variable_candidates": [],
   "raw_export_summaries": []
@@ -54,6 +55,7 @@ Known categories:
 - `GuidParseFailed`: UAssetGUI/UAssetAPI reported a GUID parsing failure.
 - `IndexOutOfRangeParseFailed`: UAssetGUI/UAssetAPI reported an index/range failure.
 - `NegativeCountParseFailed`: UAssetGUI/UAssetAPI reported a negative count/length failure.
+- `NoRawJsonProduced`: UAssetGUI exited successfully but did not produce a non-empty raw JSON file. In sandboxed Windows runs this can indicate a silent UAssetGUI/WinForms failure; retrying the same command with escalation is often the right next step.
 - `UAssetGUIParseFailed`: UAssetGUI did not produce a readable raw JSON export.
 - `SummarizerFailed`: the Python summarizer failed while reading or writing summary JSON.
 - `MalformedSummaryJson`: a summary file existed but could not be parsed back as JSON for the manifest.
@@ -71,8 +73,22 @@ Reference fields:
 - `game_refs`: package refs under `/Game/`.
 - `gameplay_tags`: dotted gameplay-tag-like strings.
 - `k2_node_candidates`: strings that look like Blueprint graph node names or K2 node classes.
+- `node_class_counts`: compact counts of parsed graph node export classes, such as `K2Node_CallFunction` and `K2Node_VariableGet`, when UAssetGUI exposes them in `Exports`.
 - `function_candidates`: function-like names, including UFunction exports and `ExecuteUbergraph`/`K2_` names.
 - `variable_candidates`: property-like or variable-like names.
+
+Node class counts:
+
+Each `node_class_counts` item includes:
+
+```json
+{
+  "class": "K2Node_CallFunction",
+  "count": 15
+}
+```
+
+These counts are useful for quickly judging graph complexity and node mix, but they still do not describe pin wiring or execution order.
 
 Raw exports:
 

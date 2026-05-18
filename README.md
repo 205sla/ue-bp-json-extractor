@@ -19,6 +19,7 @@ The AI summary JSON includes:
 - Package references, `/Script/...` references, and `/Game/...` references
 - Gameplay-tag-like strings
 - K2 node, function, and variable/property candidates
+- Compact graph node class counts when UAssetGUI exposes K2 node exports
 - Raw export summaries with index, type, name, and byte size
 
 Raw byte blobs are excluded by default. They are included only when explicitly requested with `-IncludeRaw`.
@@ -31,6 +32,8 @@ Raw byte blobs are excluded by default. They are included only when explicitly r
 - Unreal Engine version string for the asset, for example `VER_UE5_5`
 
 UAssetGUI is an external dependency, but this repository can prepare a workspace-local copy under the ignored `tools/` folder. You can also use an existing local build or release binary by passing `-UAssetGUIPath` or setting `UASSETGUI_PATH`.
+
+For `.uproject` files with `EngineAssociation` values like `5.4` or `5.5`, use UAssetGUI engine versions `VER_UE5_4` or `VER_UE5_5`.
 
 ## Repository Layout
 
@@ -143,9 +146,11 @@ Example failed summary:
 }
 ```
 
-Known failure categories include `OutputPermissionDenied`, `AppDataPermissionDenied`, `UAssetGUITimeout`, `GuidParseFailed`, `IndexOutOfRangeParseFailed`, `NegativeCountParseFailed`, `UAssetGUIParseFailed`, `SummarizerFailed`, and `MalformedSummaryJson`.
+Known failure categories include `OutputPermissionDenied`, `AppDataPermissionDenied`, `UAssetGUITimeout`, `GuidParseFailed`, `IndexOutOfRangeParseFailed`, `NegativeCountParseFailed`, `NoRawJsonProduced`, `UAssetGUIParseFailed`, `SummarizerFailed`, and `MalformedSummaryJson`.
 
-Unless `-NoStringFallback` is supplied, failed assets also get a `*.strings.json` fallback inventory. This file is a lossy ASCII identifier scan of the original binary asset. It can reveal names and references when UAssetGUI cannot parse the package, but it is not graph topology.
+`NoRawJsonProduced` means UAssetGUI exited successfully but left no non-empty raw JSON file. In sandboxed Windows runs, retry the same command with elevated permissions. Do not inspect the Windows clipboard for hidden exception text unless the user explicitly authorizes it.
+
+Unless `-NoStringFallback` is supplied, failed assets also get a `*.strings.json` fallback inventory. This file is a lossy ASCII identifier scan of the original binary asset. It can reveal names, function candidates, node class strings, and references when UAssetGUI cannot parse the package, but it is not graph topology.
 
 ## Config Isolation
 

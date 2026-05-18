@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import traceback
+from collections import Counter
 from typing import Any, Iterable
 
 
@@ -38,6 +39,7 @@ def empty_summary(asset_path: str, engine_version: str, status: str, error: dict
         "game_refs": [],
         "gameplay_tags": [],
         "k2_node_candidates": [],
+        "node_class_counts": [],
         "function_candidates": [],
         "variable_candidates": [],
         "raw_export_summaries": [],
@@ -232,6 +234,36 @@ def raw_export_summaries(exports: Iterable[Any], include_raw: bool, treat_all_as
     return summaries
 
 
+def normalize_export_class_name(value: str) -> str:
+    name = short_type_name(value)
+    if name.endswith("Export"):
+        name = name[: -len("Export")]
+    node_match = re.match(r"^(K2Node_[A-Za-z0-9]+)(?:_\d+)?$", name)
+    if node_match:
+        return node_match.group(1)
+    return name
+
+
+def count_node_classes(exports: Iterable[Any]) -> list[dict[str, Any]]:
+    counts: Counter[str] = Counter()
+    for entry in exports:
+        if not isinstance(entry, dict):
+            continue
+        candidates = (
+            normalize_export_class_name(get_string(entry, "$type")),
+            normalize_export_class_name(get_string(entry, "ClassName")),
+            normalize_export_class_name(get_string(entry, "ObjectName")),
+        )
+        for candidate in candidates:
+            if candidate.startswith("K2Node_") or candidate in {"EdGraph", "EdGraphNode"}:
+                counts[candidate] += 1
+                break
+    return [
+        {"class": class_name, "count": count}
+        for class_name, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:MAX_LIST_ITEMS]
+    ]
+
+
 def limited(values: Iterable[str]) -> list[str]:
     return sorted(v for v in values if v)[:MAX_LIST_ITEMS]
 
@@ -273,6 +305,7 @@ def summarize(root: dict[str, Any], asset_path: str, engine_version: str, includ
             gameplay_tags.add(value)
 
     raw_summaries = raw_export_summaries(exports, include_raw) + raw_export_summaries(top_raw_exports, include_raw, True)
+    node_counts = count_node_classes(exports)
 
     summary = empty_summary(asset_path, engine_version, "ok", None)
     summary.update(
@@ -288,6 +321,7 @@ def summarize(root: dict[str, Any], asset_path: str, engine_version: str, includ
             "game_refs": limited(game_refs),
             "gameplay_tags": limited(gameplay_tags),
             "k2_node_candidates": limited(k2_nodes),
+            "node_class_counts": node_counts,
             "function_candidates": limited(functions),
             "variable_candidates": limited(variables),
             "raw_export_summaries": raw_summaries,

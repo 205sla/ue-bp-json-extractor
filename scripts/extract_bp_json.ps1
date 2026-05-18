@@ -342,6 +342,7 @@ function Write-FailedSummary {
         game_refs = @()
         gameplay_tags = @()
         k2_node_candidates = @()
+        node_class_counts = @()
         function_candidates = @()
         variable_candidates = @()
         raw_export_summaries = @()
@@ -587,12 +588,20 @@ foreach ($asset in $assets) {
         else {
             if ($toJsonResult.TimedOut) {
                 $message = "UAssetGUI tojson timed out after $TimeoutSeconds seconds."
+                $failureCategory = Get-UAssetGUIFailureCategory "timed_out=True"
+            }
+            elseif ($toJsonResult.ExitCode -eq 0 -and -not $rawHasContent) {
+                $message = "UAssetGUI exited successfully but did not produce a non-empty raw JSON file. In sandboxed Windows runs, retry the same command with escalated permissions."
+                $failureCategory = "NoRawJsonProduced"
             }
             else {
                 $message = "UAssetGUI tojson did not produce a readable JSON file."
+                $failureCategory = $null
             }
-            $stack = "exit_code=$($toJsonResult.ExitCode)`ntimed_out=$($toJsonResult.TimedOut)`nstdout=$($toJsonResult.StdOut)`nstderr=$($toJsonResult.StdErr)"
-            $failureCategory = Get-UAssetGUIFailureCategory $stack
+            $stack = "exit_code=$($toJsonResult.ExitCode)`ntimed_out=$($toJsonResult.TimedOut)`nraw_exists=$rawExists`nraw_has_content=$rawHasContent`nraw_path=$rawPath`nstdout=$($toJsonResult.StdOut)`nstderr=$($toJsonResult.StdErr)"
+            if (-not $failureCategory) {
+                $failureCategory = Get-UAssetGUIFailureCategory $stack
+            }
             $entryStringInventoryJson = Invoke-StringFallback -PythonPath $resolvedPython -AssetPath $asset -InventoryPath $stringInventoryPath
             Write-FailedSummary -SummaryPath $summaryPath -AssetPath $asset -ErrorCategory $failureCategory -ErrorType "UAssetGUI.ToJsonFailed" -Message $message -Stack $stack -StringInventoryPath $entryStringInventoryJson
         }
