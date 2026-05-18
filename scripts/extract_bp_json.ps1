@@ -217,7 +217,7 @@ function Join-ProcessArguments {
 function Get-UAssetGUIFailureCategory {
     param([string]$Text)
 
-    if ($Text -match "TimedOut|timed out|timeout") {
+    if ($Text -match "TimedOut|timed[_ -]?out|timeout") {
         return "UAssetGUITimeout"
     }
     if ($Text -match "UnauthorizedAccessException" -and $Text -match "(AppData|UAssetGUI\\\\Mappings|Local\\\\UAssetGUI|Roaming\\\\UAssetGUI)") {
@@ -588,7 +588,7 @@ foreach ($asset in $assets) {
         else {
             if ($toJsonResult.TimedOut) {
                 $message = "UAssetGUI tojson timed out after $TimeoutSeconds seconds."
-                $failureCategory = Get-UAssetGUIFailureCategory "timed_out=True"
+                $failureCategory = "UAssetGUITimeout"
             }
             elseif ($toJsonResult.ExitCode -eq 0 -and -not $rawHasContent) {
                 $message = "UAssetGUI exited successfully but did not produce a non-empty raw JSON file. In sandboxed Windows runs, retry the same command with escalated permissions."
