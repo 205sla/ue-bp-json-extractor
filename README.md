@@ -2,7 +2,7 @@
 
 [Korean](README.ko.md)
 
-Codex skill and helper scripts for extracting AI-readable JSON summaries from Unreal Engine assets (`.uasset` / `.umap`), including Blueprints, maps, widgets, behavior trees, data tables, materials, meshes, and textures when UAssetGUI can parse them.
+AI agent skill and helper scripts for extracting AI-readable JSON summaries from Unreal Engine assets (`.uasset` / `.umap`), including Blueprints, maps, widgets, behavior trees, data tables, materials, meshes, and textures when UAssetGUI can parse them. Works with both **Codex** and **Claude Code** as a local skill (the `SKILL.md` format is shared between the two), and the helper scripts can be invoked directly without any agent.
 
 This project does not try to fully reconstruct Blueprint graphs. It uses UAssetGUI's existing `tojson` output as the stable source, then builds a compact summary/index that is easier for AI tools to inspect. Extraction is read-only and never modifies the original asset files.
 
@@ -158,11 +158,11 @@ UAssetGUI may read or write configuration and mappings under user profile folder
 
 Some UAssetGUI builds still resolve the real user AppData folder internally. For Codex/sandboxed runs, keep `OutputPath`, `ManifestPath`, and `AppDataRoot` under the current workspace. If the child process reports `AppDataPermissionDenied`, retry the same command with elevated permissions rather than changing the source assets.
 
-## Codex Skill Usage
+## Skill Usage
 
-This repository is structured as a Codex skill. Put the folder where Codex can load local skills, or invoke it explicitly by path.
+The repository ships a `SKILL.md` that both **Codex** and **Claude Code** can load as a local skill. Put the folder where the agent discovers skills, or invoke it explicitly by path.
 
-The skill teaches Codex to:
+The skill teaches an AI agent to:
 
 - Run UAssetGUI safely in read-only extraction mode
 - Normalize raw UAssetGUI JSON
@@ -171,31 +171,51 @@ The skill teaches Codex to:
 - Use fallback string inventories when full parsing fails
 - Avoid committing private game assets or generated extraction output
 
-## Claude Code Skill Usage
+### Claude Code
 
-Claude Code can use the same skill folder because it also discovers skills from directories containing `SKILL.md`.
+Claude Code discovers skills from any directory containing `SKILL.md` under `~/.claude/skills/` (personal) or `.claude/skills/` (project).
 
-Personal install:
+Personal install (Windows PowerShell):
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills" | Out-Null
 Copy-Item -Recurse -Force . "$env:USERPROFILE\.claude\skills\ue-bp-json-extractor"
 ```
 
-Project install:
+Project install (Windows PowerShell):
 
 ```powershell
 New-Item -ItemType Directory -Force -Path ".claude\skills" | Out-Null
 Copy-Item -Recurse -Force . ".claude\skills\ue-bp-json-extractor"
 ```
 
-For a clean Claude Code package that excludes Codex-only metadata, docs, `tools/`, notes, and generated output:
+Personal install (macOS / Linux / WSL):
+
+```bash
+mkdir -p "$HOME/.claude/skills"
+cp -R . "$HOME/.claude/skills/ue-bp-json-extractor"
+```
+
+For a clean Claude Code package that excludes Codex-only metadata, repo docs, `tools/`, notes, and generated output:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target claude-code -Zip -Force
 ```
 
-Install the generated `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` folder into `~/.claude/skills/` or `.claude/skills/`. Claude Code on Windows can run the PowerShell wrapper directly. Claude Code on WSL, Linux, or macOS can still use the Python summarizer/string scanner, but cannot run `UAssetGUI.exe` without a Windows bridge.
+Install the generated `dist/ue-bp-json-extractor-claude-code/ue-bp-json-extractor` folder into `~/.claude/skills/` or `.claude/skills/`.
+
+Platform notes for Claude Code:
+
+- **Claude Code for Windows** runs the PowerShell wrapper directly and gets full UAssetGUI extraction.
+- **Claude Code on macOS / Linux / WSL** uses the Python summarizer/string scanner (cross-platform), but cannot execute `UAssetGUI.exe` without a Windows bridge. Run the PowerShell wrapper on a Windows machine and share the raw JSON or output folder back to the macOS/Linux/WSL session, then point `summarize_uasset_json.py` at the raw JSON.
+
+### Codex
+
+Place the folder where Codex loads local skills, or invoke it by path. The `agents/openai.yaml` file provides the Codex display name and default prompt. The packager preserves it under `-Target codex`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\package_skill.ps1 -Target codex -Zip -Force
+```
 
 ## Output Schema
 
